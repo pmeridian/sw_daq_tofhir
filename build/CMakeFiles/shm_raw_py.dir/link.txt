@@ -1,0 +1,1 @@
+/usr/bin/c++  -fPIC  -DLINUX -pthread -std=c++11 -m64 -I/usr/include/root   -shared -Wl,-soname,shm_raw.so -o petsys/shm_raw.so CMakeFiles/shm_raw_py.dir/src/raw_data/shm_raw.cpp.o CMakeFiles/shm_raw_py.dir/src/raw_data/shm_raw_py.cpp.o -lrt -lpthread -lboost_python-mt -lboost_regex-mt -lpython2.7 -liniparser 

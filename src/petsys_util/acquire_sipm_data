@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from petsys import daqd, config
+from copy import deepcopy
+import argparse
+
+parser = argparse.ArgumentParser(description='Acquire data for TDC calibration')
+parser.add_argument("--config", type=str, required=True, help="Configuration file")
+parser.add_argument("-o", type=str, dest="fileNamePrefix", required=True, help="Data filename (prefix)")
+parser.add_argument("--time", type=float, required=True, help="Acquisition time (in seconds)")
+parser.add_argument("--enable-hw-trigger", dest="hwTrigger", action="store_true", help="Enable the hardware coincidence filter")
+args = parser.parse_args()
+
+systemConfig = config.ConfigFromFile(args.config)
+
+daqd = daqd.Connection()
+daqd.initializeSystem()
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_ON, hw_trigger_enable=args.hwTrigger)
+
+daqd.setTestPulsePLL(100, 1024, 0.0, False)
+daqd.setAuxIO("LEMO_J15", 0x01)
+daqd.setAuxIO("LEMO_J3_J4", 0x01)
+
+daqd.setAuxIO("LEMO_J5_J6", 0b01000000)
+daqd.setAuxIO("LEMO_J7_J8", 0b01000000)
+daqd.setAuxIO("LEMO_J9_J10", 0b01000000)
+
+
+asicsConfig = daqd.getAsicsConfig()
+for ac in asicsConfig.values():
+	gc = ac.globalConfig
+	gc.setValue("tp_ext_en", 0b1)
+	gc.setValue("tx_is_debug", 0b1)
+	for n, cc in enumerate(ac.channelConfig):
+		cc.setValue("trigger_mode_1", 0b11)
+		#cc.setValue("trigger_mode_2_t1", 0b00)
+		#cc.setValue("trigger_mode_2_t2", 0b00)
+		#cc.setValue("trigger_mode_2_q", 0b00)
+		#cc.setValue("trigger_mode_2_v", 0b00)
+		#cc.setValue("trigger_mode_2_b", 0b000)
+		
+		if n == 15:
+			cc.setValue("debug", 0)
+			cc.setValue("trigger_mode_1", 0b01)
+
+daqd.setAsicsConfig(asicsConfig)
+
+daqd.openRawAcquisition(args.fileNamePrefix, qdcMode=False)
+daqd.acquire(args.time, 0, 0);
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)

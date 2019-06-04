@@ -1,0 +1,1 @@
+/usr/bin/c++    -DLINUX -pthread -std=c++11 -m64 -I/usr/include/root    CMakeFiles/write_raw.dir/src/raw_data/write_raw.cpp.o CMakeFiles/write_raw.dir/src/raw_data/shm_raw.cpp.o  -o write_raw -rdynamic -lrt -lpthread 

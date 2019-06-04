@@ -1,0 +1,14 @@
+
+
+copy all the configs for each configuration version : copy full folder
+
+
+RECO:
+./convert_raw_to_trigger --config ../config/config.ini -i /data/TOFHIR_MTDTB_FNAL_Jun2019/RAW/run0028 -o /data/TOFHIR_MTDTB_FNAL_Jun2019/RECO/run0028.root --writeRoot --channelIDs 0,1,14,15
+
+
+
+
+
+Accelerator clock cycle (53MHz) * 8  - counts every 8th clock cycle. [Or maybe every 4th]
+each BCO is 144ns

@@ -1,0 +1,2 @@
+OverVoltage = 6.0
+VTH = 0

@@ -1,0 +1,118 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from petsys import daqd, config
+from copy import deepcopy
+import argparse
+
+parser = argparse.ArgumentParser(description='Acquire data for TDC calibration')
+parser.add_argument("--config", type=str, required=True, help="Configuration file")
+parser.add_argument("-o", type=str, dest="fileNamePrefix", required=True, help="Data filename (prefix)")
+parser.add_argument("--time", type=float, required=True, help="Acquisition time (in seconds)")
+parser.add_argument("--enable-hw-trigger", dest="hwTrigger", action="store_true", help="Enable the hardware coincidence filter")
+args = parser.parse_args()
+
+systemConfig = config.ConfigFromFile(args.config)
+
+daqd = daqd.Connection()
+daqd.initializeSystem()
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_ON, hw_trigger_enable=args.hwTrigger)
+
+
+# Enable transmission of external signal to ASIC
+daqd.setAuxIO("LEMO_J15", 0x83)
+#daqd.enableEventGate(13) # Use print_raw to check the actual delay between gate and events
+
+
+
+asicsConfig = daqd.getAsicsConfig()
+for ac in asicsConfig.values():
+	gc = ac.globalConfig
+	gc.setValue("tp_ext_en", 0b1)
+	gc.setValue("tx_is_debug", 0b1)
+	for n, cc in enumerate(ac.channelConfig):
+		cc.setValue("trigger_mode_1", 0b11)
+
+
+# Set reference channel to TDCA mode
+tdcaChipList = [6]
+tdcaChannelList = [0]
+for tdcaChip in tdcaChipList:
+	ac = asicsConfig[(0, 0, tdcaChip)]
+	gc = ac.globalConfig
+	for tdcaChannel in tdcaChannelList:
+		cc = ac.channelConfig[tdcaChannel]
+		cc.setValue("trigger_mode_1", 0b01)
+			
+		cc.setValue("trigger_mode_2_t1", 0b00)
+		cc.setValue("trigger_mode_2_t2", 0b00)
+		cc.setValue("trigger_mode_2_q", 0b00)
+		cc.setValue("trigger_mode_2_v", 0b00)
+		cc.setValue("trigger_mode_2_b", 0b000)
+
+# Set laser target channels to normal operation, all T1 trigger		
+targetChipList = [0, 2]
+targetChannelList = [ [0, 1, 14, 15], [n for n in range(16)] ]
+#targetChannelList = [ n for n in range(16) ]
+chipIterator = 0
+for targetChip in targetChipList:
+	ac = asicsConfig[(0, 0, targetChip)]
+	gc = ac.globalConfig
+	for targetChannel in targetChannelList[chipIterator]:
+		cc = ac.channelConfig[targetChannel]
+		#cc.setValue("debug", 0)
+		cc.setValue("trigger_mode_1", 0b00)
+			
+		cc.setValue("trigger_mode_2_t1", 0b00)
+		cc.setValue("trigger_mode_2_t2", 0b00)
+		cc.setValue("trigger_mode_2_q", 0b00)
+		cc.setValue("trigger_mode_2_v", 0b00)
+		cc.setValue("trigger_mode_2_b", 0b000)
+        chipIterator += 1
+		
+daqd.setAsicsConfig(asicsConfig)
+
+
+daqd.openRawAcquisition(args.fileNamePrefix, qdcMode=False)
+
+#Get OverVoltage and VTH from UserInputSettings.txt
+ov = 0    #default turn it off
+vth = 40
+UserInputSettingsFile = open(“/home/daq/sw_daq_tofhir_v1/DAQSettings/UserInputSettings.txt”,”r”) 
+line = UserInputSettingsFile.readline()
+ov = float((line.split("=")[1]).strip())
+line = UserInputSettingsFile.readline()
+vth = float((line.split("=")[1]).strip())	  
+print "Using OverVoltage = "+string(ov)+"\n"
+print "Using VTH = "+string(vth)+"\n"
+UserInputSettingsFile.close()
+
+hvdacHwConfig = daqd.get_hvdac_config()
+for (portID, slaveID, hvChannelID) in systemConfig.getCalibratedBiasChannels():
+	offset, prebd, bd, __ = systemConfig.getBiasChannelDefaultSettings((portID, slaveID, hvChannelID))
+	Vset = offset + bd + ov
+	dacSet = systemConfig.mapBiasChannelVoltageToDAC((portID, slaveID, hvChannelID), Vset)
+	hvdacHwConfig[(portID, slaveID, hvChannelID)] = dacSet
+daqd.set_hvdac_config(hvdacHwConfig)
+		
+
+chipIterator = 0		
+for targetChip in targetChipList:
+        ac = asicsConfig[(0, 0, targetChip)]
+	#gc = ac.globalConfig
+	#gc.setValue("vb1_bias_ig", ib1)
+	#gc.setValue("fe_ib2", ib2 % 64)
+	#gc.setValue("cg2_sw_n", ib2 / 64)
+			
+	for targetChannel in targetChannelList[chipIterator]:
+                cc = ac.channelConfig[targetChannel]
+		cc.setValue("vth_t1", vth)
+        chipIterator += 1
+			
+			
+daqd.setAsicsConfig(asicsConfig)
+print "Step is %3.1f %2d" % (ov, vth)
+daqd.acquire(args.time, ov, vth)
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)

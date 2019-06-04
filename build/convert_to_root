@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+
+import os, sys
+
+first_run = 1
+last_run = first_run
+
+first_run=input('Choose first run number: ')
+last_run=input('Choose last run number: ')
+
+conversion_type=input('Choose conversion type (0 for coincidence, 1 for trigger, 2 for singles) : ')
+
+
+for iRun in range(first_run, last_run+1):
+    if conversion_type == 0:
+        os.system('./convert_raw_to_coincidence --config ../config/config.ini -i /data/TOFHIR_MTDTB_FNAL_Jun2019/RAW/run%.4d -o /data/TOFHIR_MTDTB_FNAL_Jun2019/RECO/run_to_c_%.4d.root --writeRoot' % (iRun, iRun))
+        print('converted to coincedence run number: %.4d ...' % iRun)
+    elif conversion_type == 1:
+        os.system('./convert_raw_to_trigger --config ../config/config.ini -i /data/TOFHIR_MTDTB_FNAL_Jun2019/RAW/run%.4d -o /data/TOFHIR_MTDTB_FNAL_Jun2019/RECO/run_to_t_%.4d.root --writeRoot --channelIDs 0,1,14,15,384' % (iRun, iRun))
+        print('converted to trigger run number: %.4d ...' % iRun)
+    elif conversion_type == 2:
+        os.system('./convert_raw_to_singles --config ../config/config.ini -i /data/TOFHIR_MTDTB_FNAL_Jun2019/RAW/run%.4d -o /data/TOFHIR_MTDTB_FNAL_Jun2019/RECO/run_to_s_%.4d.root --writeRoot ' % (iRun, iRun))
+        print('converted to single run number: %.4d ...' % iRun)

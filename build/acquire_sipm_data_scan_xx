@@ -1,0 +1,104 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from petsys import daqd, config
+from copy import deepcopy
+import argparse
+
+parser = argparse.ArgumentParser(description='Acquire data for TDC calibration')
+parser.add_argument("--config", type=str, required=True, help="Configuration file")
+parser.add_argument("-o", type=str, dest="fileNamePrefix", required=True, help="Data filename (prefix)")
+parser.add_argument("--time", type=float, required=True, help="Acquisition time (in seconds)")
+parser.add_argument("--enable-hw-trigger", dest="hwTrigger", action="store_true", help="Enable the hardware coincidence filter")
+args = parser.parse_args()
+
+systemConfig = config.ConfigFromFile(args.config)
+
+daqd = daqd.Connection()
+daqd.initializeSystem()
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_ON, hw_trigger_enable=args.hwTrigger)
+
+mode = "laser"
+tp_phase = 0.25
+
+daqd.setTestPulsePLL(100, 4*1024, tp_phase, False)
+if mode is not "tdca":
+	#daqd.setAuxIO("LEMO_J15", 0x01)
+	#daqd.setAuxIO("LEMO_J15", 0x83) #trigger
+	daqd.setAuxIO("LEMO_J15", 0x04) #clock
+	daqd.setAuxIO("LEMO_J3_J4", 0x01)
+
+
+asicsConfig = daqd.getAsicsConfig()
+for ac in asicsConfig.values():
+	gc = ac.globalConfig
+	gc.setValue("tp_ext_en", 0b1)
+	gc.setValue("tx_is_debug", 0b1)
+	for n, cc in enumerate(ac.channelConfig):
+		cc.setValue("trigger_mode_1", 0b11)
+
+
+targetChipList = [0]
+targetChannelList = [n for n in range(16)]
+for targetChip in targetChipList:
+	ac = asicsConfig[(0, 0, targetChip)]
+	gc = ac.globalConfig
+	for targetChannel in targetChannelList:
+		cc = ac.channelConfig[targetChannel]
+		#cc.setValue("debug", 0)
+		cc.setValue("trigger_mode_1", 0b00)
+		if mode is "tdca":
+			cc.setValue("trigger_mode_1", 0b01)
+			
+		cc.setValue("trigger_mode_2_t1", 0b00)
+		cc.setValue("trigger_mode_2_t2", 0b00)
+		cc.setValue("trigger_mode_2_q", 0b00)
+		cc.setValue("trigger_mode_2_v", 0b00)
+		cc.setValue("trigger_mode_2_b", 0b000)
+	
+daqd.setAsicsConfig(asicsConfig)
+
+
+daqd.openRawAcquisition(args.fileNamePrefix, qdcMode=False)
+
+vth = 0
+ov = 4.
+intv = 1
+
+for tp_phase in [0]:
+	daqd.setTestPulsePLL(100, intv*1024, tp_phase, False)
+
+#	for vth in [0]:#range(0,1):
+#	for vth in [0, 5, 10, 15, 20, 30, 40]:
+#       for vth in [63, 62, 61, 60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 47, 46, 45, 44, 43, 42, 41, 40, 39, 38, 37, 36, 35]:            
+
+#	for ov in [1, 1.5, 2.,3.,4.,5.,6.]: #range(0,1):
+        for ov in [6]: #range(0,1):
+
+		hvdacHwConfig = daqd.get_hvdac_config()
+		for (portID, slaveID, hvChannelID) in systemConfig.getCalibratedBiasChannels():
+			offset, prebd, bd, __ = systemConfig.getBiasChannelDefaultSettings((portID, slaveID, hvChannelID))
+			Vset = offset + bd + ov
+			dacSet = systemConfig.mapBiasChannelVoltageToDAC((portID, slaveID, hvChannelID), Vset)
+			hvdacHwConfig[(portID, slaveID, hvChannelID)] = dacSet
+		daqd.set_hvdac_config(hvdacHwConfig)
+		
+		
+		for targetChip in targetChipList:
+			ac = asicsConfig[(0, 0, targetChip)]
+			#gc = ac.globalConfig
+			#gc.setValue("vb1_bias_ig", ib1)
+			#gc.setValue("fe_ib2", ib2 % 64)
+			#gc.setValue("cg2_sw_n", ib2 / 64)
+			
+			for targetChannel in targetChannelList:
+				cc = ac.channelConfig[targetChannel]
+				cc.setValue("vth_t1", vth)
+			
+			
+		daqd.setAsicsConfig(asicsConfig)
+		#print "Step is %3.1f %2d" % (vth, 0)
+		daqd.acquire(args.time * intv, ov, 0)
+
+systemConfig.loadToHardware(daqd, bias_enable=config.APPLY_BIAS_OFF)

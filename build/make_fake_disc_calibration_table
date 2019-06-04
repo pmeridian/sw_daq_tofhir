@@ -1,0 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from petsys import daqd, config
+from copy import deepcopy
+import argparse
+
+parser = argparse.ArgumentParser(description='Make a fake discriminator calibration table')
+parser.add_argument("-o", type=str, required=True, help="Output file")
+args = parser.parse_args()
+
+connection = daqd.Connection()
+connection.initializeSystem()
+
+
+outputFile = open(args.o, "w")
+
+
+outputFile.write("#portID\tslaveID\tchipID\tchannelID\tbaseline_T\tbaseline_E\tzero_T1\tzero_T2\tzero_E\tnoise_T1\tnoise_T2\tnoise_E\n")
+for portID, slaveID, chipID in connection.getActiveAsics():
+	for channelID in range(16):
+		outputFile.write("%d\t%d\t%d\t%d\t55\t6\t55\t55\t55\t1\t1\t1\n" % (portID, slaveID, chipID, channelID))
+
+outputFile.close()

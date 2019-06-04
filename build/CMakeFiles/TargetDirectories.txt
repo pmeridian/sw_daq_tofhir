@@ -1,0 +1,10 @@
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/common.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/convert_raw_to_coincidence.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/convert_raw_to_raw.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/convert_raw_to_singles.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/convert_raw_to_trigger.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/daqd.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/print_raw.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/process_tdc_calibration.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/shm_raw_py.dir
+/home/daq/sw_daq_tofhir_v1/build/CMakeFiles/write_raw.dir
