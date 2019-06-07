@@ -44,6 +44,7 @@ private:
         std::vector<unsigned short>*    brJ;
         std::vector<long long>*         brTime;
         std::map<int,int>               brChannelIdx;
+        std::map<int,int>               brChannelCount;
         std::vector<unsigned int>*      brChannelID;
         std::vector<float>*             brToT;
         std::vector<float>*             brEnergy;
@@ -108,6 +109,7 @@ public:
 
 			for(unsigned int ii = 0; ii < channelIDsVec.size(); ++ii) {
 			  hData->Branch(Form("ch%s",channelIDsVec.at(ii).c_str()), &(brChannelIdx[atoi(channelIDsVec.at(ii).c_str())]), bs);
+			  hData->Branch(Form("nCh%s",channelIDsVec.at(ii).c_str()), &(brChannelCount[atoi(channelIDsVec.at(ii).c_str())]), bs);
 			      }
 			
 			hData->Branch("channelID", &brChannelID, bs);
@@ -204,7 +206,10 @@ public:
 			brZ -> clear();
 			
 			for(auto mapIt : brChannelIdx)
-			  brChannelIdx[mapIt.first] = -1;
+			  {
+			    brChannelIdx[mapIt.first] = -1;
+			    brChannelCount[mapIt.first] = 0;
+			  }
 			
 			if(!p.valid) continue;
 			int limit = (hitLimitToWrite < p.nHits) ? hitLimitToWrite : p.nHits;
@@ -218,7 +223,9 @@ public:
 					
 					brJ->push_back(m);
 					brTime->push_back(((long long)(h.time * Tps)) + tMin);
-					brChannelIdx[h.raw->channelID] = m;
+					if( brChannelIdx[h.raw->channelID] == -1 )
+					  brChannelIdx[h.raw->channelID] = m;
+					brChannelCount[h.raw->channelID] += 1;
 					brChannelID->push_back(h.raw->channelID);
 					brToT->push_back((h.timeEnd - h.time) * Tps);
 					brEnergy->push_back(h.energy * Eunit);
