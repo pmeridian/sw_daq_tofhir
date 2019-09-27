@@ -4,17 +4,17 @@ INC = $(shell pwd)
 Repo = $(shell git rev-parse --show-toplevel)
 SRC = $(Repo)/src
 
-CPPFLAGS := $(shell root-config --cflags) -I$(INC)/include 
-LDFLAGS := $(shell root-config --glibs) 
+CPPFLAGS := $(shell root-config --cflags) -I$(INC)/include
+LDFLAGS := $(shell root-config --glibs)
 CPPFLAGS += -g -std=c++1y
 
-TARGET = ConvertTOFPETSinglesToEvents
-SRC = ConvertTOFPETSinglesToEvents.cc
+TARGET = MeanCalculation
+SRC = MeanCalculation.cc
 OBJ = $(SRC:.cc=.o)
 
 
 
-all : $(TARGET) $(TARGET2) $(TARGET3)
+all : $(TARGET) 
 
 $(TARGET) : $(OBJ)
 	@echo $@
@@ -25,3 +25,4 @@ $(TARGET) : $(OBJ)
 	$(CXX) $(CPPFLAGS) -o $@ -c $<
 clean :
 	rm -f *.o $(TARGET) *~
+
