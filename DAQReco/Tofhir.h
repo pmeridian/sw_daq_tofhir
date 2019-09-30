@@ -446,7 +446,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     
     // VME related branches
     UInt_t  i_evt            ;
-    float channel[36][1024];
+    float channel[2][1024] ;
     float timeVME[4][1024]    ;
     float baseline[36]     ;
     float baseline_RMS[36];
@@ -483,7 +483,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     
     // VME related branches
     outTree->Branch("i_evt",&i_evt ,"i_evt/i");
-    outTree->Branch("channel",&channel   ,"channel[36][1024]/F");
+    outTree->Branch("channel",&channel   ,"channel[2][1024]/F");
     outTree->Branch("timeVME",&timeVME  ,"timeVME[4][1024]/F");
     outTree->Branch("baseline",&baseline  ,"baseline[36]/F");
     outTree->Branch("baseline_RMS",&baseline_RMS ,"baseline_RMS[36]/F");
@@ -613,9 +613,9 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
                             
                             for (int ix=0; ix < 1024;ix++){
                                 
-                                for (int jx=0; jx < 36;jx++){
-                                    channel[jx][ix]=channel_[jx][ix];
-                                }
+                                channel[0][ix]=channel_[0][ix];
+                                channel[1][ix]=channel_[2][ix];
+                                
                                 for (int jy=0; jy < 4;jy++){
                                     timeVME[jy][ix]=time_[jy][ix];
                                 }
@@ -647,9 +647,9 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
                             
                             for (int ix=0; ix < 1024;ix++){
                                 
-                                for (int jx=0; jx < 36;jx++){
-                                    channel[jx][ix]=-999;
-                                }
+                                channel[0][ix]=-999;
+                                channel[1][ix]=-999;
+
                                 for (int jy=0; jy < 4;jy++){
                                     timeVME[jy][ix]=-999;
                                 }
