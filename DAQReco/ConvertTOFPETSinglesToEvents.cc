@@ -139,7 +139,7 @@ int main(int argc, char* argv[]){
     //Step 3          Find the Match and fill the output file Tree ====
     //=================================================================
 
-     TOF_.MatchAndFill(outTree, TRK_Fast, TRK_Slow, tofhirTree, trackerTreeFast, trackerTreeSlow ,VMETree, TOF_.SPILLIndex);
+     TOF_.MatchAndFill(outTree, TRK_Fast, TRK_Slow, tofhirTree, trackerTreeFast, trackerTreeSlow ,VMETree, TOF_.SPILLIndex,atoi(Run));
 
     outFile->Write();
     outFile->Close();

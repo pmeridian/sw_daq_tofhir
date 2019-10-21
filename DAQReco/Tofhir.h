@@ -27,7 +27,7 @@
 
 #include "Tracker.h"
 
-#define SEARCHWINDOWSIZE 15000 //in ps units  (5000 was changed to 15000 after an optimization study)
+#define SEARCHWINDOWSIZE 5000 //in ps units
 #define MATCH_THRESHOLD 0.000005 // in seconds
 #define ClockScaleFactor 1.04617
 #define DEBUG_Tofhir 1
@@ -36,7 +36,7 @@ using namespace std;
 //std::cout << std::setprecision(10);
 
 class TOFHIR {
-    public:
+public:
     
     struct SpillInfo {
         int Index;
@@ -67,7 +67,7 @@ class TOFHIR {
     
     int doMatching(TTree *, TRACKER , SlowTrigTracker , TTree *,TTree *, TTree *, int  );
     int find1stSpill(TRACKER ,TTree *, TTree *, int , int , int );
-    void MatchAndFill(TTree * ,   TRACKER , SlowTrigTracker ,TTree *, TTree *, TTree * ,TTree *, vector< pair <int,int> > );
+    void MatchAndFill(TTree * ,   TRACKER , SlowTrigTracker ,TTree *, TTree *, TTree * ,TTree *, vector< pair <int,int> > , int);
     
     UInt_t channelID;
     Long64_t time;
@@ -77,7 +77,7 @@ class TOFHIR {
     
     vector< pair <int,int> > SPILLIndex ;
     
-    private:
+private:
     
     
 };
@@ -127,7 +127,7 @@ step2_(-99)
         
         Long64_t tTrigger = time;
         
-        int j_start = triggeredTofhirEv[q].Index-100;
+        int j_start = triggeredTofhirEv[q].Index-50;
         if (j_start < 0) j_start = 0;
         int j_end = triggeredTofhirEv[q].Index+100;
         
@@ -140,6 +140,7 @@ step2_(-99)
             if (tdiff >= 170000 - SEARCHWINDOWSIZE &&  tdiff <= 170000 + SEARCHWINDOWSIZE) {
                 tInfo.chTime_[channelID] = time;
                 tInfo.chtot_[channelID] = tot;
+                //                cout<<"index="<<j<<" tTrigger="<<tTrigger*1e-9<<" channelID="<<channelID<<" time="<<time*1e-9<<" tot="<<tot*1e-3<<"\n";
             }
         }
         TimeVar.push_back(tInfo);
@@ -148,7 +149,7 @@ step2_(-99)
 
 
 //================================================================================================================
-//////// First Event in 1st spill  in TOFHIR data
+// First Event in 1st spill  in TOFHIR data
 //================================================================================================================
 
 TOFHIR::SpillInfo TOFHIR::get1stEvent1stSplill(Int_t startEvent){
@@ -172,7 +173,7 @@ TOFHIR::SpillInfo TOFHIR::get1stEvent1stSplill(Int_t startEvent){
 }
 
 //================================================================================================================
-//////// Last Event in 1st spill  in TOFHIR data
+//  Last Event in 1st spill  in TOFHIR data
 //================================================================================================================
 
 TOFHIR::SpillInfo TOFHIR::getLastEvent1stSplill(Int_t startEvent){
@@ -205,7 +206,7 @@ TOFHIR::SpillInfo TOFHIR::getLastEvent1stSplill(Int_t startEvent){
 }
 
 //================================================================================================================
-//////// First Event in 2nd spill  in TOFHIR data
+// First Event in 2nd spill  in TOFHIR data
 //================================================================================================================
 
 TOFHIR::SpillInfo TOFHIR::get1stEvent2ndSplill(Int_t startEvent){
@@ -231,7 +232,7 @@ TOFHIR::SpillInfo TOFHIR::get1stEvent2ndSplill(Int_t startEvent){
 }
 
 //================================================================================================================
-//////// Last Event in 2nd spill  in TOFHIR data
+//  Last Event in 2nd spill  in TOFHIR data
 //================================================================================================================
 
 TOFHIR::SpillInfo TOFHIR::getLastEvent2ndSplill(Int_t startEvent){
@@ -267,7 +268,7 @@ TOFHIR::SpillInfo TOFHIR::getLastEvent2ndSplill(Int_t startEvent){
 }
 
 //================================================================================================================
-//////// Last Event in 3rd spill  in TOFHIR data
+//  Last Event in 3rd spill  in TOFHIR data
 //================================================================================================================
 
 
@@ -360,7 +361,7 @@ int TOFHIR::find1stSpill(TRACKER TRK_Fast,TTree *tofhirTree, TTree *trackerTree,
 //*********************************************************************************************************************
 //*********************************************************************************************************************
 
-void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker TRK_Slow,TTree *tofhirTree, TTree *trackerTree, TTree * trackerTreeSlow , TTree * VMETree, vector< pair <int,int> > SpillInterval){
+void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker TRK_Slow,TTree *tofhirTree, TTree *trackerTree, TTree * trackerTreeSlow , TTree * VMETree, vector< pair <int,int> > SpillInterval, int run){
     
     cout<<"\nIndex of first spill in TOFHIR= "<< SpillInterval[0].first << "\t and first spill in TRACKER = "<< SpillInterval[0].second<<"\n";
     cout<<"Index of second spill in TOFHIR= "<< SpillInterval[1].first << "\t and second spill in TRACKER = "<< SpillInterval[1].second<<"\n";
@@ -405,7 +406,73 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     float gaus_sigma_[36]  ;
     float gaus_chi2_[36]    ;
     int triggerNumber_ ;
-    UShort_t corruption_      ;
+    UShort_t corruption_ ;
+    Float_t   IL_10[36];
+    Float_t   IL_20[36];
+    Float_t   IL_30[36];
+    Float_t   IL_50[36];
+    Float_t   IL_10mV[36];
+    Float_t   IL_20mV[36];
+    Float_t   IL_30mV[36];
+    Float_t   IL_50mV[36];
+    Float_t   IL_70mV[36];
+    Float_t   IL_90mV[36];
+    Float_t   IL_100mV[36];
+    Float_t   IL_120mV[36];
+    Float_t   IL_140mV[36];
+    Float_t   IL_160mV[36];
+    Float_t   IL_180mV[36];
+    Float_t   IL_200mV[36];
+    Float_t   LP1_10[36];
+    Float_t   LP1_20[36];
+    Float_t   LP1_30[36];
+    Float_t   LP1_50[36];
+    Float_t   LP1_10mV[36];
+    Float_t   LP1_20mV[36];
+    Float_t   LP1_30mV[36];
+    Float_t   LP1_50mV[36];
+    Float_t   LP1_70mV[36];
+    Float_t   LP1_90mV[36];
+    Float_t   LP1_100mV[36];
+    Float_t   LP1_120mV[36];
+    Float_t   LP1_140mV[36];
+    Float_t   LP1_160mV[36];
+    Float_t   LP1_180mV[36];
+    Float_t   LP1_200mV[36];
+    
+    VMETree->SetBranchAddress("IL_10",&IL_10 );
+    VMETree->SetBranchAddress("IL_20",&IL_20 );
+    VMETree->SetBranchAddress("IL_30",&IL_30 );
+    VMETree->SetBranchAddress("IL_50",&IL_50 );
+    VMETree->SetBranchAddress("IL_10mV",&IL_10mV );
+    VMETree->SetBranchAddress("IL_20mV",&IL_20mV );
+    VMETree->SetBranchAddress("IL_30mV",&IL_30mV );
+    VMETree->SetBranchAddress("IL_50mV",&IL_50mV );
+    VMETree->SetBranchAddress("IL_70mV",&IL_70mV );
+    VMETree->SetBranchAddress("IL_90mV",&IL_90mV );
+    VMETree->SetBranchAddress("IL_100mV",&IL_100mV );
+    VMETree->SetBranchAddress("IL_120mV",&IL_120mV );
+    VMETree->SetBranchAddress("IL_140mV",&IL_140mV );
+    VMETree->SetBranchAddress("IL_160mV",&IL_160mV );
+    VMETree->SetBranchAddress("IL_180mV",&IL_180mV );
+    VMETree->SetBranchAddress("IL_200mV",&IL_200mV );
+    VMETree->SetBranchAddress("LP1_10",&LP1_10 );
+    VMETree->SetBranchAddress("LP1_20",&LP1_20 );
+    VMETree->SetBranchAddress("LP1_30",&LP1_30 );
+    VMETree->SetBranchAddress("LP1_50",&LP1_50 );
+    VMETree->SetBranchAddress("LP1_10mV",&LP1_10mV );
+    VMETree->SetBranchAddress("LP1_20mV",&LP1_20mV );
+    VMETree->SetBranchAddress("LP1_30mV",&LP1_30mV );
+    VMETree->SetBranchAddress("LP1_50mV",&LP1_50mV );
+    VMETree->SetBranchAddress("LP1_70mV",&LP1_70mV );
+    VMETree->SetBranchAddress("LP1_90mV",&LP1_90mV );
+    VMETree->SetBranchAddress("LP1_100mV",&LP1_100mV );
+    VMETree->SetBranchAddress("LP1_120mV",&LP1_120mV );
+    VMETree->SetBranchAddress("LP1_140mV",&LP1_140mV );
+    VMETree->SetBranchAddress("LP1_160mV",&LP1_160mV );
+    VMETree->SetBranchAddress("LP1_180mV",&LP1_180mV );
+    VMETree->SetBranchAddress("LP1_200mV",&LP1_200mV );
+        
     
     VMETree->SetBranchAddress("i_evt",&i_evt_);
     VMETree->SetBranchAddress("channel",&channel_);
@@ -427,6 +494,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     
     
     //==============Add Branch for all the output variables================
+    
     Int_t event=1;
     float step1=-99;
     float step2=-99;
@@ -446,7 +514,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     
     // VME related branches
     UInt_t  i_evt            ;
-    float channel[2][1024] ;
+    float channel[3][1024] ;
     float timeVME[4][1024]    ;
     float baseline[36]     ;
     float baseline_RMS[36];
@@ -463,7 +531,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     int triggerNumber ;
     UShort_t corruption      ;
     
-    
+    outTree->Branch("run",&run,"run/I");
     outTree->Branch("event",&event,"event/I");
     outTree->Branch("step1", &step1, "step1/F");
     outTree->Branch("step2", &step2, "step2/F");
@@ -483,7 +551,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     
     // VME related branches
     outTree->Branch("i_evt",&i_evt ,"i_evt/i");
-    outTree->Branch("channel",&channel   ,"channel[2][1024]/F");
+    outTree->Branch("channel",&channel   ,"channel[3][1024]/F");
     outTree->Branch("timeVME",&timeVME  ,"timeVME[4][1024]/F");
     outTree->Branch("baseline",&baseline  ,"baseline[36]/F");
     outTree->Branch("baseline_RMS",&baseline_RMS ,"baseline_RMS[36]/F");
@@ -500,6 +568,38 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
     outTree->Branch("triggerNumber",&triggerNumber ,"triggerNumber/I");
     outTree->Branch("corruption",&corruption ,"corruption/s");
     
+    outTree->Branch("IL_10",&IL_10 ,"IL_10[36]/F");
+    outTree->Branch("IL_20",&IL_20 ,"IL_20[36]/F");
+    outTree->Branch("IL_30",&IL_30 ,"IL_30[36]/F");
+    outTree->Branch("IL_50",&IL_50 ,"IL_50[36]/F");
+    outTree->Branch("IL_10mV",&IL_10mV ,"IL_10mV[36]/F");
+    outTree->Branch("IL_20mV",&IL_20mV ,"IL_20mV[36]/F");
+    outTree->Branch("IL_30mV",&IL_30mV ,"IL_30mV[36]/F");
+    outTree->Branch("IL_50mV",&IL_50mV ,"IL_50mV[36]/F");
+    outTree->Branch("IL_70mV",&IL_70mV ,"IL_70mV[36]/F");
+    outTree->Branch("IL_90mV",&IL_90mV ,"IL_90mV[36]/F");
+    outTree->Branch("IL_100mV",&IL_100mV ,"IL_100mV[36]/F");
+    outTree->Branch("IL_120mV",&IL_120mV ,"IL_120mV[36]/F");
+    outTree->Branch("IL_140mV",&IL_140mV ,"IL_140mV[36]/F");
+    outTree->Branch("IL_160mV",&IL_160mV ,"IL_160mV[36]/F");
+    outTree->Branch("IL_180mV",&IL_180mV ,"IL_180mV[36]/F");
+    outTree->Branch("IL_200mV",&IL_200mV ,"IL_200mV[36]/F");
+    outTree->Branch("LP1_10",&LP1_10 ,"LP1_10[36]/F");
+    outTree->Branch("LP1_20",&LP1_20 ,"LP1_20[36]/F");
+    outTree->Branch("LP1_30",&LP1_30 ,"LP1_30[36]/F");
+    outTree->Branch("LP1_50",&LP1_50 ,"LP1_50[36]/F");
+    outTree->Branch("LP1_10mV",&LP1_10mV ,"LP1_10mV[36]/F");
+    outTree->Branch("LP1_20mV",&LP1_20mV ,"LP1_20mV[36]/F");
+    outTree->Branch("LP1_30mV",&LP1_30mV ,"LP1_30mV[36]/F");
+    outTree->Branch("LP1_50mV",&LP1_50mV ,"LP1_50mV[36]/F");
+    outTree->Branch("LP1_70mV",&LP1_70mV ,"LP1_70mV[36]/F");
+    outTree->Branch("LP1_90mV",&LP1_90mV ,"LP1_90mV[36]/F");
+    outTree->Branch("LP1_100mV",&LP1_100mV ,"LP1_100mV[36]/F");
+    outTree->Branch("LP1_120mV",&LP1_120mV ,"LP1_120mV[36]/F");
+    outTree->Branch("LP1_140mV",&LP1_140mV ,"LP1_140mV[36]/F");
+    outTree->Branch("LP1_160mV",&LP1_160mV ,"LP1_160mV[36]/F");
+    outTree->Branch("LP1_180mV",&LP1_180mV ,"LP1_180mV[36]/F");
+    outTree->Branch("LP1_200mV",&LP1_200mV ,"LP1_200mV[36]/F");
     
     //initialize for event 1
     for(int k=0;k<400;k++){
@@ -614,7 +714,8 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
                             for (int ix=0; ix < 1024;ix++){
                                 
                                 channel[0][ix]=channel_[0][ix];
-                                channel[1][ix]=channel_[2][ix];
+                                channel[1][ix]=channel_[1][ix];
+                                channel[2][ix]=channel_[2][ix];
                                 
                                 for (int jy=0; jy < 4;jy++){
                                     timeVME[jy][ix]=time_[jy][ix];
@@ -649,7 +750,8 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, SlowTrigTracker T
                                 
                                 channel[0][ix]=-999;
                                 channel[1][ix]=-999;
-
+                                channel[2][ix]=-999;
+                                
                                 for (int jy=0; jy < 4;jy++){
                                     timeVME[jy][ix]=-999;
                                 }
