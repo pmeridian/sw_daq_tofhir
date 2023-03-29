@@ -59,7 +59,7 @@ public:
 
   explicit TOFHIR (TTree *);
 
-  const UInt_t triggerChannelID = 255;
+  const UInt_t triggerChannelID = 96;
   vector<SpillInfo> triggeredTofhirEv;
   vector<chTimeInfo> TimeVar;
 
@@ -178,7 +178,7 @@ step2_(-99)
 
       //If channel falls within our search window, then populate the data for that channel
       //            if (tdiff >= 170000 - SEARCHWINDOWSIZE &&  tdiff <= 170000 + SEARCHWINDOWSIZE) {
-      if (tdiff >= 200000  &&  tdiff <= 300000 ) {
+      if (tdiff >= 100000  &&  tdiff <= 300000 ) {
         tInfo.chTime_[channelID] = time;
         tInfo.chtot_[channelID] = tot;
         tInfo.energy_[channelID] = energy;

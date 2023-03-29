@@ -46,23 +46,26 @@ int main(int argc, char* argv[]){
   std::string runNumber(Run);
 
   //=====================Open TOFHIR input files=========================
-  string singleFile= "/eos/cms/store/group/dpg_mtd/comm_mtd/TB/MTDTB_FNAL_Feb2020/TOFHIR/RecoData/v1/RecoWithTracks/run"+runNumber+"_singles.root";
+  //  string singleFile= "/eos/uscms/store/group/cmstestbeam/2023_03_cmstiming_BTL/TOFHIR/RecoData/run"+runNumber+"_e.root";
+  string singleFile= "/uscms_data/d2/meridian/MTD/FNALTB_2023/BTLReco/reco/run"+runNumber+"_s.root";
   TFile *tofhirFile=new TFile(singleFile.c_str(),"read");
   TTree *tofhirTree = (TTree*)tofhirFile->Get("data");
-  int nTriggers = tofhirTree->Draw("channelID","channelID==255","goff");
+  int nTriggers = tofhirTree->Draw("channelID","channelID==96","goff");
   if( tofhirTree != NULL ) cout << "\n>>> got TOFHIR tree from file " << singleFile << " with " << tofhirTree->GetEntries() << " entries and " << nTriggers << " triggers" << endl;
   else exit(-1);
 
   TOFHIR TOF_(tofhirTree);
 
   //=====================Open fast Tracker input files=========================
-  string trackingFileFast = "/eos/cms/store/group/dpg_mtd/comm_mtd/TB/MTDTB_FNAL_Feb2020/Tracks/Run"+runNumber+"_CMSTiming_FastTriggerStream_converted.root";
+  string trackingFileFast = "/eos/uscms/store/group/cmstestbeam/2023_03_cmstiming_BTL/Tracks/v1/Run"+runNumber+"_CMSTiming_FastTriggerStream_converted.root";
   TFile *trackerFileFast = new TFile(trackingFileFast.c_str(),"READ");
   TTree *trackerTreeFast = (TTree*)trackerFileFast->Get("CMSTiming");
   if( trackerTreeFast != NULL ) cout << ">>> got track tree from file " << trackingFileFast << " with " << trackerTreeFast->GetEntries() << " entries" << endl;
   else exit(-1);
 
   TRACKER TRK_Fast(trackerTreeFast);
+
+  exit(-1);
 
   //=====================Open Slow Tracker input files=========================
   string trackingFileSlow = "/eos/cms/store/group/dpg_mtd/comm_mtd/TB/MTDTB_FNAL_Feb2020/Tracks/Run"+runNumber+"_CMSTiming_SlowTriggerStream_converted.root";
