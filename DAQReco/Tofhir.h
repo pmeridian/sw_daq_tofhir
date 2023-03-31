@@ -52,21 +52,11 @@ public:
     Long64_t Time;
   };
 
-  struct chTimeInfo {
-    Long64_t chTime_[256];
-    float chtot_[256];
-    float energy_[256];
-    float qfine_[256];
-  };
-
-
 
   explicit TOFHIR (TTree *);
 
   const UInt_t triggerChannelID = 96;
   vector<SpillInfo> triggeredTofhirEv;
-  vector<chTimeInfo> TimeVar;
-
 
   Long64_t *  makeTimeTot(TTree * , int );
 
@@ -78,17 +68,9 @@ public:
   int find1stSpill(TRACKER ,TTree *, TTree *, int , int , int );
   void MatchAndFill(TTree * ,   TRACKER , TTree *, TTree *, vector< pair <int,int> > , int);
 
-  UInt_t channelID;
-  Long64_t time;
-  float tot;
-  float energy;
-  float qfine;
-  float step1_;
-  float step2_;
-
-  std::vector<std::vector<Long64_t> >  vecTDiff;
-
-
+  Int_t           channelIdx[256];
+  vector<Long64_t> *time;
+  
   vector< pair <int,int> > SPILLIndex ;
 
 private:
@@ -97,21 +79,16 @@ private:
 };
 
 
-TOFHIR::TOFHIR(TTree * tofhirTree):
+TOFHIR::TOFHIR(TTree * tofhirTree)
 //Member initialization in constructors
-channelID(-9999), // functional form
-time(-9999),
-tot(-9999),
-step1_(-99),
-step2_(-99)
 {
-  tofhirTree->SetBranchAddress("channelID",&channelID);
+  tofhirTree->SetBranchAddress("channelIdx",channelIdx);
   tofhirTree->SetBranchAddress("time",&time);
-  tofhirTree->SetBranchAddress("tot",&tot);
-  tofhirTree->SetBranchAddress("energy",&energy);
-  tofhirTree->SetBranchAddress("qfine",&qfine);
-  tofhirTree->SetBranchAddress("step1",&step1_);
-  tofhirTree->SetBranchAddress("step2",&step2_);
+  // tofhirTree->SetBranchAddress("tot",&tot);
+  // tofhirTree->SetBranchAddress("energy",&energy);
+  // tofhirTree->SetBranchAddress("qfine",&qfine);
+  // tofhirTree->SetBranchAddress("step1",&step1_);
+  // tofhirTree->SetBranchAddress("step2",&step2_);
 
 
   SpillInfo test;
@@ -119,74 +96,13 @@ step2_(-99)
 
     tofhirTree->GetEntry(ix);
 
-    if (channelID == triggerChannelID) {
+    if (channelIdx[triggerChannelID]>=0) {
 
-      test.Time= time;
+      test.Time= (*time)[channelIdx[triggerChannelID]];
       test.Index= ix;
 
       triggeredTofhirEv.push_back(test);
     }
-  }
-
-  chTimeInfo tInfo;
-  for (Int_t q=0;q<triggeredTofhirEv.size(); q++) {
-
-    tofhirTree->GetEntry(triggeredTofhirEv[q].Index);
-
-    for(UInt_t pp=0;pp<256;pp++){
-      tInfo.chTime_[pp]=-9999;
-      tInfo.chtot_[pp]=-9999;
-      tInfo.energy_[pp]=-9999;
-      tInfo.qfine_[pp]=-9999;
-    }
-
-
-    tInfo.chTime_[triggerChannelID] = time;
-    tInfo.chtot_[triggerChannelID] = tot;
-    tInfo.energy_[triggerChannelID] = energy;
-    tInfo.qfine_[triggerChannelID] = qfine;
-
-    Long64_t tTrigger = time;
-
-    int j_start = triggeredTofhirEv[q].Index-50;
-    if (j_start < 0) j_start = 0;
-    int j_end = triggeredTofhirEv[q].Index+50;
-    int counter_trg=0;
-
-    //=============================================
-    // Just to add a new branch for SEARCHWINDOWSIZE optimization
-    //        Long64_t tDiffTrigger_[150];
-    //        for(UInt_t pp=0;pp<150;pp++){
-    //            tDiffTrigger_[pp]=-1000000;
-    //        }
-    vector<Long64_t> tDiffTrigger_;
-    tDiffTrigger_.clear();
-    //=============================================
-
-    for (Int_t j=j_start;j<j_end; j++) {
-      tofhirTree->GetEntry(j);
-
-      Long64_t tdiff = tTrigger - time;
-      //            cout << counter_trg <<"  time diff = "<<tdiff<<"\t";
-      //            tDiffTrigger_[counter_trg]=tdiff;
-      tDiffTrigger_.push_back(tdiff);
-
-      //            cout << "tDiffTrigger_[counter_trg]"  <<tDiffTrigger_[counter_trg] <<"\n";
-      counter_trg++;
-
-
-      //If channel falls within our search window, then populate the data for that channel
-      //            if (tdiff >= 170000 - SEARCHWINDOWSIZE &&  tdiff <= 170000 + SEARCHWINDOWSIZE) {
-      if (tdiff >= 100000  &&  tdiff <= 300000 ) {
-        tInfo.chTime_[channelID] = time;
-        tInfo.chtot_[channelID] = tot;
-        tInfo.energy_[channelID] = energy;
-        tInfo.qfine_[channelID] = qfine;
-        //                cout<<"index="<<j<<" tTrigger="<<tTrigger*1e-9<<" channelID="<<channelID<<" time="<<time*1e-9<<" tot="<<tot*1e-3<<"\n";
-      }
-    }
-    TimeVar.push_back(tInfo);
-    vecTDiff.push_back(tDiffTrigger_);
   }
 }
 
@@ -348,86 +264,14 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
   double ResidualClockScaleFactor = ClockScaleFactor;
 
 
-  //==============set Branch addresses TOFHIR================
-  UInt_t channelID=-9999;
-  Long64_t time=-9999;
-  float tot=-9999;
-  float step1_=-9999;
-  float step2_=-9999;
-
-  tofhirTree->SetBranchAddress("channelID",&channelID);
-  tofhirTree->SetBranchAddress("time",&time);
-  tofhirTree->SetBranchAddress("tot",&tot);
-  tofhirTree->SetBranchAddress("step1",&step1_);
-  tofhirTree->SetBranchAddress("step2",&step2_);
-
-
-  //==============Add Branch for all the output variables================
-
-  Int_t event=1;
-  float step1=-99;
-  float step2=-99;
-  Long64_t chTime[256];
-  float energy[256];
-  float qfine[256];
-  float chtot[256];
-  float xIntercept=-9999;
-  float yIntercept=-9999;
-  float xSlope=-9999;
-  float ySlope=-9999;
-  float x_dut=-9999;
-  float y_dut=-9999;
-  float chi2=-9999;
-  int ntracks=-1;
-  int nplanes=-1;
-  int matchEff=0;
-  int SlowTriggerTag=0;
-  Long64_t tDiffTrigger[150];
-  float TimeDiff=-10;
-
-
-  outTree->Branch("run",&run,"run/I");
-  outTree->Branch("event",&event,"event/I");
-  outTree->Branch("step1", &step1, "step1/F");
-  outTree->Branch("step2", &step2, "step2/F");
-  outTree->Branch("time",&chTime,"time[256]/L");
-  outTree->Branch("tot",&chtot,"tot[256]/F");
-  outTree->Branch("energy",&energy,"energy[256]/F");
-  outTree->Branch("qfine",&qfine,"qfine[256]/F");
-  outTree->Branch("xIntercept", &xIntercept, "xIntercept/F");
-  outTree->Branch("yIntercept", &yIntercept, "yIntercept/F");
-  outTree->Branch("xSlope", &xSlope, "xSlope/F");
-  outTree->Branch("ySlope", &ySlope, "ySlope/F");
-  outTree->Branch("x_dut", &x_dut, "x_dut/F");
-  outTree->Branch("y_dut", &y_dut, "y_dut/F");
-  outTree->Branch("chi2", &chi2, "chi2/F");
-  outTree->Branch("ntracks", &ntracks, "ntracks/I");
-  outTree->Branch("nplanes", &nplanes, "nplanes/I");
-  outTree->Branch("matchEff", &matchEff, "matchEff/I");
-  outTree->Branch("SlowTriggerTag", &SlowTriggerTag, "SlowTriggerTag/I");
-  outTree->Branch("tDiffTrigger",&tDiffTrigger,"tDiffTrigger[150]/L");
-  outTree->Branch("TimeDiff", &TimeDiff, "TimeDiff/F");
-
-
-
-  //initialize for event 1
-  for(int k=0;k<256;k++){
-    chTime[k]=-9999;
-    chtot[k]=-9999;
-    energy[k]=-9999;
-    qfine[k]=-9999;
-  }
-
-
-  for(int k=0;k<150;k++){
-    tDiffTrigger[k]=-999999;
-  }
   //==============Other variables================
   int totalNumEve=triggeredTofhirEv.size();
   int totalNumEveMatched=1;
   int bothTriggeredFired=0;
   int lastMatchedIndex=0;
-
+  float TimeDiff=-10;
+  int matchEff=0;
+  
   //    //================================================================================================================
   //    //================================================================================================================
   //    //======================== Look for coincidences =================================================================
@@ -440,43 +284,16 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
   for (Int_t q=SpilBegin;q<triggeredTofhirEv.size()-1; q++) {
 
 
-    tofhirTree->GetEntry(triggeredTofhirEv[q].Index);
+    // tofhirTree->GetEntry(triggeredTofhirEv[q].Index);
 
-    //========================================
-    //=========== reset tracker default values
-    //========================================
-    xIntercept = -9999;
-    yIntercept = -9999;
-    xSlope = -9999;
-    ySlope = -9999;
-    x_dut = -9999;
-    y_dut = -9999;
-    chi2 = -9999;
-    ntracks = -1;
-    nplanes = -1;
-    matchEff = 0;
-    SlowTriggerTag = 0;
     TimeDiff = -10;
-
+    int NMatchedTracks = 0;
+    matchEff=0;
 
     //================================================================================================================
     if (DEBUG_Deep_Tofhir) cout<<"\n\nq= "<<q<<"   time is= "<<triggeredTofhirEv[q].Time*1e-12 <<"  dif=" <<(triggeredTofhirEv[q].Time-TofhirTimeZero)*1e-12<<"\n";
 
-
-    for(int pp=0;pp<256;pp++){
-      chTime[pp]=TimeVar[q].chTime_[pp];
-      chtot[pp]=TimeVar[q].chtot_[pp];
-      energy[pp]=TimeVar[q].energy_[pp];
-      qfine[pp]=TimeVar[q].qfine_[pp];
-    }
-
-    // for(int pp=0;pp<150;pp++){
-    //   tDiffTrigger[pp]=vecTDiff[q][pp];
-    // }
-
-    double TOFHIRTriggerTimestamp = (time - TofhirTimeZero)*1e-12;
-    int NMatchedTracks = 0;
-    matchEff=0;
+    double TOFHIRTriggerTimestamp = (triggeredTofhirEv[q].Time - TofhirTimeZero)*1e-12;
 
     for(int k=PreviousMatchIndex+1; k<trackerTree->GetEntries(); k++) {
 
@@ -510,23 +327,23 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
         NMatchedTracks++;
         PreviousMatchIndex = k;
 
-	//using INFO from NETXT EVENT... both 2020 & 2023 ????
-	trackerTree->GetEntry( k + 1);
-        //================================================================================================================
-        // Fill variables of the FastTriggerMode of Tracker
-        //================================================================================================================
-        xIntercept=TRK_Fast.trackerEvent->xIntercept * 1e-3;
-        yIntercept=TRK_Fast.trackerEvent->yIntercept * 1e-3;
-        xSlope=TRK_Fast.trackerEvent->xSlope * 1e-3;
-        ySlope=TRK_Fast.trackerEvent->ySlope * 1e-3;
-        x_dut= (TRK_Fast.trackerEvent->xIntercept + TRK_Fast.trackerEvent->xSlope * 2.0e5) * 1e-3;
-        y_dut= (TRK_Fast.trackerEvent->yIntercept + TRK_Fast.trackerEvent->ySlope * 2.0e5) * 1e-3;
-        chi2 = TRK_Fast.trackerEvent->chi2;
-        ntracks = NMatchedTracks;
-        nplanes = TRK_Fast.trackerEvent->nPlanes;
-        step1=step1_;
-        step2=step2_;
-        matchEff=1;
+	// //using INFO from NETXT EVENT... both 2020 & 2023 ????
+	// trackerTree->GetEntry( k + 1);
+        // //================================================================================================================
+        // // Fill variables of the FastTriggerMode of Tracker
+        // //================================================================================================================
+        // xIntercept=TRK_Fast.trackerEvent->xIntercept * 1e-3;
+        // yIntercept=TRK_Fast.trackerEvent->yIntercept * 1e-3;
+        // xSlope=TRK_Fast.trackerEvent->xSlope * 1e-3;
+        // ySlope=TRK_Fast.trackerEvent->ySlope * 1e-3;
+        // x_dut= (TRK_Fast.trackerEvent->xIntercept + TRK_Fast.trackerEvent->xSlope * 2.0e5) * 1e-3;
+        // y_dut= (TRK_Fast.trackerEvent->yIntercept + TRK_Fast.trackerEvent->ySlope * 2.0e5) * 1e-3;
+        // chi2 = TRK_Fast.trackerEvent->chi2;
+        // ntracks = NMatchedTracks;
+        // nplanes = TRK_Fast.trackerEvent->nPlanes;
+        // step1=step1_;
+        // step2=step2_;
+        // matchEff=1;
 	break;
       }// Check if Tofhir evet matched the trigger
       else if (TOFHIRTriggerTimestamp - trackerTime < -0.001 ) {
@@ -536,8 +353,8 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
     }
 
 
-    if (DEBUG_Deep_Tofhir) std::cout << xIntercept << "," << yIntercept << std::endl;
-    outTree->Fill();
+    // if (DEBUG_Deep_Tofhir) std::cout << xIntercept << "," << yIntercept << std::endl;
+    // outTree->Fill();
   }
 
   if (DEBUG_Tofhir)
