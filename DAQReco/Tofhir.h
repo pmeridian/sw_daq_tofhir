@@ -35,11 +35,11 @@
 // #define MATCH_THRESHOLD 0.000004 // in seconds
 // #define ClockScaleFactor 1.0461686
 //Updated for Mar2023 Test beam
-#define MATCH_THRESHOLD 0.00001 // in seconds
+#define MATCH_THRESHOLD 0.000004 // in seconds
 #define ClockScaleFactor 1.04163497
 
 #define DEBUG_Tofhir 1
-#define DEBUG_Deep_Tofhir 1
+#define DEBUG_Deep_Tofhir 0
 
 using namespace std;
 //std::cout << std::setprecision(10);
@@ -297,8 +297,6 @@ int TOFHIR::find1stSpill(TRACKER TRK_Fast,TTree *tofhirTree, TTree *trackerTree,
   int firstOfTrack=PreviousMatchIndex;
   int totalNumEveMatched=1;
 
-  std::cout << "+++++++++++++++++++++++++++++ " << Itr << " ++++++++++++++++++++++++++++++++++++" << std::endl;
-  
   //======================== Look for coincidences =================================================================
   for (Int_t q=SpilBegin;q<SpilBegin+50; q++) {
 
@@ -314,7 +312,6 @@ int TOFHIR::find1stSpill(TRACKER TRK_Fast,TTree *tofhirTree, TTree *trackerTree,
       Long64_t TrackerBCOThisEvent = TRK_Fast.trackerEvent->bco;
       if (TRK_Fast.trackerEvent->bco== 4294967295) continue;
       double trackerTime = (TrackerBCOThisEvent - TrackerTimeZero) * 144e-9 * ClockScaleFactor;
-      std::cout << q << "," << k << "," << TOFHIRTriggerTimestamp*1e6 << "," << trackerTime*1e6 <<std::endl;
       if (fabs (TOFHIRTriggerTimestamp - trackerTime ) < MATCH_THRESHOLD  ){
         totalNumEveMatched++;
         PreviousMatchIndex = k;
@@ -486,13 +483,11 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
       // trackerTree->GetEntry( k + 1);
       // Long64_t TrackerBCONextEvent = TRK_Fast.trackerEvent->bco;
 
-      std::cout << "H" << std::endl;
       trackerTree->GetEntry( k );
       Long64_t TrackerBCOThisEvent = TRK_Fast.trackerEvent->bco;
 
       if (TRK_Fast.trackerEvent->bco== 4294967295) continue;
 
-      std::cout << "HH" << std::endl;
       //double trackerTime = (TrackerBCOThisEvent - TrackerTimeZero) * 144e-9 * ClockScaleFactor * (1.+1.76719e-06);
       double trackerTime = (TrackerBCOThisEvent - TrackerTimeZero) * 144e-9 * ClockScaleFactor; 
 
