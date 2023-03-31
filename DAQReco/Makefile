@@ -19,7 +19,7 @@ all :  $(TARGET)
 
 $(TARGET) : $(OBJ)
 	@echo $@
-	$(LD) $(CPPFLAGS) -o $(TARGET) $(OBJ) $(head) $(LDFLAGS) 
+	$(LD) $(CPPFLAGS) -o $(TARGET) $(OBJ) $(LDFLAGS) 
 
 
 %.o : %.cc

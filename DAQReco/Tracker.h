@@ -26,6 +26,7 @@
 #include "TFile.h"
 #include "TSystem.h"
 #include "TProfile.h"
+
 #define DEBUG_TRK 1
 
 using namespace std;
@@ -83,11 +84,32 @@ public:
     double xIntercept;
     double yIntercept;
     double chi2;
-    int trigger;
-    int runNumber;
-    int nPlanes;
-    int numPixels;
-    int numBackPlanes;
+    double xResidBack;
+    double yResidBack;
+    double xErrDUT;
+    double yErrDUT;
+    double xErr04;
+    double yErr04;
+    double xErr05;
+    double yErr05;
+    double xErrPix0;
+    double yErrPix0;
+    double xResid04;
+    double yResid04;
+    double xResid05;
+    double yResid05;
+    double xResidPix0;
+    double yResidPix0;
+    int  trigger;
+    int  runNumber;
+    int  nPlanes;
+    int  numPixels;
+    int  numBackPlanes;
+    int  numTracks;
+    int  numClustersPix;
+    int  numClustersStripsOdd;
+    int  numClustersStripsEven;
+    int  numStripsWith2Clusters;
     Long64_t timestamp;
     Long64_t bco;
   };
@@ -96,9 +118,6 @@ public:
 
   SpillInfo get1stEvent1stSplill(TTree *,Int_t);
   SpillInfo getLastEvent1stSplill(TTree *,Int_t);
-  SpillInfo get1stEvent2ndSplill(TTree *,Int_t);
-  SpillInfo getLastEvent2ndSplill(TTree *,Int_t);
-  SpillInfo get1stEvent3rdSplill(TTree *,Int_t);
 
 private:
 };
@@ -165,13 +184,11 @@ TRACKER::SpillInfo TRACKER::getLastEvent1stSplill(TTree * trackerTree,Int_t star
     Long64_t TrackerBCOThisEvent = trackerEvent->bco;
     if (trackerEvent->bco== 4294967295) continue;
 
-    if (TrackerBCONextEvent < TrackerBCOThisEvent) continue;
-    if (TrackerBCOThisEvent < TrackerBCOStarter) continue;
-
-
+    if ( k<trackerTree->GetEntries()-1 && TrackerBCONextEvent < TrackerBCOThisEvent) continue;
+    if ( k<trackerTree->GetEntries()-1  && TrackerBCOThisEvent < TrackerBCOStarter) continue;
+    
     //Check whether we have reached the end of spill
     if (k == trackerTree->GetEntries()-1 ){
-      cout << k<<" \t\t we reached to the end of spill \n";
       spl.Time = TrackerBCOThisEvent;
       spl.Index = k;
       if (DEBUG_TRK)    cout << "TRACKER: last event's index and time in spill 1:  " <<  k << " : " << TrackerBCOThisEvent << "\n";
@@ -183,120 +200,6 @@ TRACKER::SpillInfo TRACKER::getLastEvent1stSplill(TTree * trackerTree,Int_t star
       spl.Time = TrackerBCOThisEvent;
       spl.Index = k;
       if (DEBUG_TRK)   cout << "TRACKER: last event's index and time in spill 1:  " <<  k << " : " << TrackerBCOThisEvent << "\n";
-      break;
-    }
-  }
-  return  spl;
-}
-
-
-//================================================================================================================
-// First Event in  spill2  in Tracker data
-//================================================================================================================
-TRACKER::SpillInfo TRACKER::get1stEvent2ndSplill(TTree * trackerTree, Int_t startEvent){
-
-  TRACKER::SpillInfo spl;
-
-
-  for(int k=startEvent; k<trackerTree->GetEntries()-1; k++) {
-
-    trackerTree->GetEntry( startEvent );
-    Long64_t TrackerBCOStarter = trackerEvent->bco;
-
-    trackerTree->GetEntry( k+1 );
-    Long64_t TrackerBCONextEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    trackerTree->GetEntry( k );
-    Long64_t TrackerBCOThisEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    if (TrackerBCONextEvent < TrackerBCOThisEvent) continue;
-    if (TrackerBCOThisEvent < TrackerBCOStarter) continue;
-
-    //if events are within 2ms of each other then we have entered the spill
-    if ( (TrackerBCONextEvent - TrackerBCOThisEvent)*144e-9 < 0.002 ) {
-      spl.Time = TrackerBCOThisEvent;
-      spl.Index = k;
-      if (DEBUG_TRK)     cout << "TRACKER: first event's index and time in spill 2: " <<  k << " : " << TrackerBCOThisEvent << "\n";
-      break;
-    }
-  }
-  return  spl;
-}
-
-//================================================================================================================
-// First Event in  spill2  in Tracker data
-//================================================================================================================
-//
-//Find First Event In Spill in Tracker data
-
-TRACKER::SpillInfo TRACKER::getLastEvent2ndSplill(TTree * trackerTree, Int_t startEvent){
-
-  TRACKER::SpillInfo spl;
-
-  for(int k=startEvent; k<trackerTree->GetEntries()-1; k++) {
-
-    trackerTree->GetEntry( startEvent );
-    Long64_t TrackerBCOStarter = trackerEvent->bco;
-
-    trackerTree->GetEntry( k+1 );
-    Long64_t TrackerBCONextEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    trackerTree->GetEntry( k );
-    Long64_t TrackerBCOThisEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    if (TrackerBCONextEvent < TrackerBCOThisEvent) continue;
-    if (TrackerBCOThisEvent < TrackerBCOStarter) continue;
-
-
-    //if events are more than 0.5s of each other then we have left the spill
-    if ( (TrackerBCONextEvent - TrackerBCOThisEvent)*144e-9 > 0.5) {
-
-      spl.Time = TrackerBCOThisEvent;
-      spl.Index = k;
-      if (DEBUG_TRK)    cout << "TRACKER: last event's index and time in spill 2:  " <<  k << " : " << TrackerBCOThisEvent << "\n";
-      break;
-    }
-  }
-  return  spl;
-}
-
-//================================================================================================================
-// First Event in  spill3  in Tracker data
-//================================================================================================================
-//
-//Find First Event In Spill in Tracker data
-
-TRACKER::SpillInfo TRACKER::get1stEvent3rdSplill(TTree * trackerTree, Int_t startEvent){
-
-  TRACKER::SpillInfo spl;
-
-
-  for(int k=startEvent; k<trackerTree->GetEntries()-1; k++) {
-
-    trackerTree->GetEntry( startEvent );
-    Long64_t TrackerBCOStarter = trackerEvent->bco;
-
-    trackerTree->GetEntry( k+1 );
-    Long64_t TrackerBCONextEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    trackerTree->GetEntry( k );
-    Long64_t TrackerBCOThisEvent = trackerEvent->bco;
-    if (trackerEvent->bco== 4294967295) continue;
-
-    if (TrackerBCONextEvent < TrackerBCOThisEvent) continue;
-    if (TrackerBCOThisEvent < TrackerBCOStarter) continue;
-
-    //if events are within 2ms of each other then we have entered the spill
-    if ( (TrackerBCONextEvent - TrackerBCOThisEvent)*144e-9 < 0.002 ) {
-
-      spl.Time = TrackerBCOThisEvent;
-      spl.Index = k;
-      if (DEBUG_TRK)    cout << "TRACKER: first event's index and time in spill 3: " <<  k << " : " << TrackerBCOThisEvent << "\n\n";
       break;
     }
   }
