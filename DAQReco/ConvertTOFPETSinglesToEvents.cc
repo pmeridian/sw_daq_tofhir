@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
   //  string singleFile= "/eos/uscms/store/group/cmstestbeam/2023_03_cmstiming_BTL/TOFHIR/RecoData/run"+runNumber+"_e.root";
   //string singleFile= "/uscms_data/d2/meridian/MTD/FNALTB_2023/BTLReco/reco/run"+runNumber+"_s.root";
   string singleFile= "/Users/meridian/scratch/FNALTB_2023/data/run"+runNumber+"_e.root";
-  TFile *tofhirFile=new TFile(singleFile.c_str(),"read");
+  TFile *tofhirFile=new TFile(singleFile.c_str(),"update");
   TTree *tofhirTree = (TTree*)tofhirFile->Get("data");
   int nTriggers = tofhirTree->Draw("channelID","channelID==96","goff");
   if( tofhirTree != NULL ) cout << "\n>>> got TOFHIR tree from file " << singleFile << " with " << tofhirTree->GetEntries() << " entries and " << nTriggers << " triggers" << endl;
@@ -80,11 +80,11 @@ int main(int argc, char* argv[]){
 
 
   //=====================RECREATE outputFile=========================
-  std::string OutName="outFile_"+runNumber+"_match.root";
-  TFile *outFile = new TFile(OutName.c_str(),"recreate");
-  TTree *outTree = new TTree("data","data");
-  outTree->SetAutoSave();
-
+  // std::string OutName="outFile_"+runNumber+"_match.root";
+  // TFile *outFile = new TFile(OutName.c_str(),"recreate");
+  tofhirFile->cd();
+  TTree *outTree = new TTree("sync","sync");
+  // outTree->SetAutoSave();
 
   if (TOF_.triggeredTofhirEv.size() > 0) {
 
@@ -117,9 +117,12 @@ int main(int argc, char* argv[]){
     TOF_.MatchAndFill(outTree, TRK_Fast,  tofhirTree, trackerTreeFast, TOF_.SPILLIndex,atoi(Run));
   }
 
-
-  outFile->Write();
-  outFile->Close();
+  tofhirFile->cd();
+  outTree->Write();
+  tofhirTree->AddFriend(outTree);
+  tofhirTree->Write();
+  // outFile->Write();
+  // outFile->Close();
   tofhirFile->Close();
   trackerFileFast->Close();
 }
