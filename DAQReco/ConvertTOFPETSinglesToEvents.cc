@@ -79,6 +79,13 @@ int main(int argc, char* argv[]){
   }
 
 
+  //=====================Open fast Tracker input files=========================
+  string scopeFileName = "/Users/meridian/scratch/FNALTB_2023/data/run"+runNumber+".root";
+  TFile *scopeFile = new TFile(scopeFileName.c_str(),"READ");
+  TTree *scopeTree = (TTree*)scopeFile->Get("pulse");
+  if( scopeTree != NULL ) cout << ">>> got scope tree from file " << scopeFileName << " with " << scopeTree->GetEntries() << " entries" << endl;
+  else exit(-1);
+
   //=====================RECREATE outputFile=========================
   // std::string OutName="outFile_"+runNumber+"_match.root";
   // TFile *outFile = new TFile(OutName.c_str(),"recreate");
@@ -114,7 +121,7 @@ int main(int argc, char* argv[]){
     //Step 3          Find the Match and fill the output file Tree ====
     //=================================================================
 
-    TOF_.MatchAndFill(outTree, TRK_Fast,  tofhirTree, trackerTreeFast, TOF_.SPILLIndex,atoi(Run));
+    TOF_.MatchAndFill(outTree, TRK_Fast,  tofhirTree, trackerTreeFast, scopeTree, TOF_.SPILLIndex,atoi(Run));
   }
 
   tofhirFile->cd();

@@ -35,7 +35,7 @@
 // #define MATCH_THRESHOLD 0.000004 // in seconds
 // #define ClockScaleFactor 1.0461686
 //Updated for Mar2023 Test beam
-#define MATCH_THRESHOLD 0.000001 // in seconds
+#define MATCH_THRESHOLD 0.000004 // in seconds
 #define ClockScaleFactor 1.04163497
 
 #define DEBUG_Tofhir 1
@@ -66,7 +66,7 @@ public:
   SpillInfo getLastEvent1stSplill(Int_t);
 
   int find1stSpill(TRACKER ,TTree *, TTree *, int , int , int );
-  void MatchAndFill(TTree * ,   TRACKER , TTree *, TTree *, vector< pair <int,int> > , int);
+  void MatchAndFill(TTree * ,   TRACKER , TTree *, TTree *, TTree*, vector< pair <int,int> > , int);
 
   Int_t           channelIdx[256];
   vector<Long64_t> *time;
@@ -247,7 +247,7 @@ int TOFHIR::find1stSpill(TRACKER TRK_Fast,TTree *tofhirTree, TTree *trackerTree,
 //*********************************************************************************************************************
 
 
-void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree, TTree *trackerTree, vector< pair <int,int> > SpillInterval, int run){
+void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree, TTree *trackerTree, TTree* scopeTree, vector< pair <int,int> > SpillInterval, int run){
 
   cout<<"\nIndex of first spill in TOFHIR= "<< SpillInterval[0].first << "\t and first spill in TRACKER = "<< SpillInterval[0].second<<"\n";
 
@@ -274,6 +274,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
 
   int iev_TOFHIR;
   int iev_TRACKER;
+  int iev_SCOPE;
   double t_TOFHIR;
   unsigned long t_TRACKER_bco;
   float xIntercept=-9999;
@@ -283,11 +284,13 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
   float x_dut=-9999;
   float y_dut=-9999;
   float chi2=-9999;
+  float amp_MCP=-9999;
   int nplanes=-1;
 
   
   outTree->Branch("iev_TOFHIR",&iev_TOFHIR,"iev_TOFHIR/I");
   outTree->Branch("iev_TRACKER",&iev_TRACKER,"iev_TRACKER/I");
+  outTree->Branch("iev_SCOPE",&iev_SCOPE,"iev_SCOPE/I");
   outTree->Branch("t_TOFHIR",&t_TOFHIR,"t_TOFHIR/D");
   outTree->Branch("t_TRACKER_bco",&t_TRACKER_bco,"t_TRACKER_bco/l");
   outTree->Branch("xIntercept", &xIntercept, "xIntercept/F");
@@ -297,8 +300,21 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
   outTree->Branch("x_dut", &x_dut, "x_dut/F");
   outTree->Branch("y_dut", &y_dut, "y_dut/F");
   outTree->Branch("chi2", &chi2, "chi2/F");
+  outTree->Branch("amp_MCP", &amp_MCP, "amp_MCP/F");
   outTree->Branch("nplanes", &nplanes, "nplanes/I");
 
+
+  float x_scope;
+  float y_scope;
+  float amp[4];
+  int nEntriesScope=0;
+  if (scopeTree)
+    {
+      nEntriesScope=scopeTree->GetEntries();
+      scopeTree->SetBranchAddress("xIntercept",&x_scope);
+      scopeTree->SetBranchAddress("yIntercept",&y_scope);
+      scopeTree->SetBranchAddress("amp",amp);
+    }
   //    //================================================================================================================
   //    //================================================================================================================
   //    //======================== Look for coincidences =================================================================
@@ -306,13 +322,14 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
   //    //================================================================================================================
 
   PreviousMatchIndex--;
-
+  int lastScopeMatchedIndex=-1;
 
   //    for (Int_t q=SpilBegin;q<triggeredTofhirEv.size(); q++) {
   int lastIndex=0;
   for (Int_t q=SpilBegin;q<triggeredTofhirEv.size(); q++) {
     iev_TOFHIR=-1;
     iev_TRACKER=-1;
+    iev_SCOPE=-1;
     xIntercept = -9999;
     yIntercept = -9999;
     xSlope = -9999;
@@ -320,6 +337,7 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
     x_dut = -9999;
     y_dut = -9999;
     chi2 = -9999;
+    amp_MCP=-9999;
     nplanes = -1;
 
     //Fill empty informations in events without EXT trigger 
@@ -390,6 +408,25 @@ void TOFHIR::MatchAndFill(TTree * outTree,   TRACKER TRK_Fast, TTree *tofhirTree
         y_dut= (TRK_Fast.trackerEvent->yIntercept + TRK_Fast.trackerEvent->ySlope * 2.0e5) * 1e-3;
         chi2 = TRK_Fast.trackerEvent->chi2;
         nplanes = TRK_Fast.trackerEvent->nPlanes;
+
+	if (scopeTree)
+	  {
+	    for (int j=lastScopeMatchedIndex+1;j<std::min(lastScopeMatchedIndex+2000,nEntriesScope);++j)
+	      {
+		scopeTree->GetEntry(j);
+		
+		if (fabs(xIntercept-x_scope)<0.01 && fabs(yIntercept-y_scope)<0.01)
+		  {
+		    //matched scope event
+		    iev_SCOPE=j;
+		    lastScopeMatchedIndex=j;
+		    amp_MCP=amp[3];
+		    if (j%1000==0)
+		      std::cout << "SCOPE matched events " << j << ":" << x_scope << "," << y_scope << " | " << xIntercept << "," << yIntercept << std::endl;
+		    break;
+		  }
+	      }
+	  }
 	break;
       }// Check if Tofhir evet matched the trigger
       else if (TOFHIRTriggerTimestamp - trackerTime < -0.001 ) {
